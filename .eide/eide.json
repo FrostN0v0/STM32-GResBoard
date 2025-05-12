@@ -58,9 +58,6 @@
               },
               {
                 "path": "Src/stm32l4xx_hal_msp.c"
-              },
-              {
-                "path": "Src/nb_iot.c"
               }
             ],
             "folders": []
