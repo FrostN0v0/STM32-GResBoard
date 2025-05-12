@@ -25,7 +25,6 @@
 #include "X9318.h"
 #include "stm32l4xx_hal.h"
 #include "remote.h"
-#include <stdio.h>
 
 /* USER CODE END 0 */
 

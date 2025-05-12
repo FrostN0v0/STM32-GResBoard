@@ -1,7 +1,6 @@
 #include "nb_iot.h"
 #include "usart.h"
 #include <string.h>
-#include <stdio.h>
 
 #define NB_RX_BUFFER_SIZE 256
 #define SERVER_IP         "122.152.221.247" // UDP服务器IP
