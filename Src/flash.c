@@ -2,7 +2,6 @@
 #include <string.h>
 #include "usart.h"
 #include "stm32l4xx_hal.h"
-#include <stdio.h>
 
 HAL_StatusTypeDef  HAL_FLASH_Unlock(void);//解锁
 HAL_StatusTypeDef  HAL_FLASH_Lock(void);  //上锁

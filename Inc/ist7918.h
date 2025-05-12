@@ -46,7 +46,7 @@
 #define RES_1()                 HAL_GPIO_WritePin(IST7918_RES_PORT, IST7918_RES_PIN,ON)
 
 extern uint8_t Addr,thshold,channel,page,Sleep_Time;//地址，阈值，信道，页，休眠时间
-extern  float Resistance, old_Resistance ;
+extern  float Resistance，old_Resistance ;
 extern  uint8_t data_1[10];
 extern  uint8_t flag_page,page;
 extern  float Resistance;
