@@ -24,6 +24,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "nb_iot.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -124,6 +125,8 @@ int main(void)
     RTC_TimeShow_1();                           // rtc时间获取
     LCD_Clear();                                // LCD清屏
     num_i = 0;                                  //
+    // NB_Init();                                  // NB-IOT初始化
+    // NB_SendUDPData("AABBCC66");                 // 发送测试数据
     //	HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN5);//禁用�?有使用的唤醒�?:PWR_WAKEUP_PIN1 connected to PA.00
     //  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);//清除�?有相关的唤醒标志
     //  HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN5);//启用连接到PC5的WakeUp Pin
@@ -137,7 +140,7 @@ int main(void)
         //    /* USER CODE END WHILE */
 
         //    /* USER CODE BEGIN 3 */
-
+        Test_Send(); // 测试发送
         //	if(flag_recog==1)
         //		{
         if (IR_Scanf(&temp)) // 调试和显示
@@ -258,6 +261,7 @@ int main(void)
                 {
                     lora_flag = 0;
                     HAL_Delay(5000);
+                    NB_SendResistanceData(Addr, channel, old_Resistance);
                     // Lora_Data_UPload(Addr, channel, old_Resistance, 1); // 发送电阻0：发送16进制数据;1：发送文本数据
                 }
             } else if (num_i >= 60) //
@@ -266,8 +270,8 @@ int main(void)
                 HAL_Delay(1000);
                 num_i = 0;
                 //     flag_recog=2;
-                Power_0;                     // 放大器电源关闭
-                REMOTE_0();                  // 红外遥控电源关闭
+                Power_0;    // 放大器电源关闭
+                REMOTE_0(); // 红外遥控电源关闭
                 // Lora_Control(0);             // Lora进入深度休眠模式
                 Low_power_Sleep(Sleep_Time); // 低功耗睡眠配置--设置休眠时间**小时
             }
