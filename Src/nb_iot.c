@@ -4,10 +4,10 @@
 
 #define NB_RX_BUFFER_SIZE 256
 #define SERVER_IP         "122.152.221.247" // UDP服务器IP
-#define SERVER_PORT       "18888"        // UDP服务器端口
+#define SERVER_PORT       "18888"           // UDP服务器端口
 
 static char nb_rx_buffer[NB_RX_BUFFER_SIZE];
-static int socket_id = -1;
+static int socket_id = 0;
 
 static void NB_ClearBuffer(void)
 {
@@ -34,7 +34,6 @@ static NB_Status NB_WaitResponse(const char *expected, uint32_t timeout)
     return NB_TIMEOUT;
 }
 
-
 /**
  * @brief 发送AT命令并等待响应
  *
@@ -44,16 +43,15 @@ static NB_Status NB_WaitResponse(const char *expected, uint32_t timeout)
  * @param cmd 要发送的AT命令
  * @param expected 预期的响应字符串
  * @param timeout 超时时间（毫秒）
- * 
+ *
  * @return NB_Status 返回操作的状态
- * 
+ *
  */
 NB_Status NB_SendAT(const char *cmd, const char *expected, uint32_t timeout)
 {
     printf("%s\r\n", cmd);
     return NB_WaitResponse(expected, timeout);
 }
-
 
 /**
  * @brief 初始化NB-IoT模块
@@ -68,10 +66,10 @@ void NB_Init(void)
 {
     NB_SendAT("AT", "OK", 1000);
     HAL_Delay(500);
-    NB_SendAT("AT+QREGSWT=2", "OK", 2000);    // 禁用IoT平台的注册功能
-    NB_SendAT("AT+CPIN?", "READY", 2000);     // SIM卡状态
-    NB_SendAT("AT+CSQ", "OK", 1000);          // 信号质量
-    NB_SendAT("AT+CGATT=1", "OK", 3000);      // 附着网络
+    NB_SendAT("AT+QREGSWT=2", "OK", 2000); // 禁用IoT平台的注册功能
+    NB_SendAT("AT+CPIN?", "READY", 2000);  // SIM卡状态
+    NB_SendAT("AT+CSQ", "OK", 1000);       // 信号质量
+    NB_SendAT("AT+CGATT=1", "OK", 3000);   // 附着网络
     if (NB_SendAT("AT+NSOCR=DGRAM,17,0,1", "OK", 1000) == NB_OK) { socket_id = 1; }
 }
 
@@ -82,13 +80,13 @@ void NB_Init(void)
  *
  * @param data 待发送的UDP数据，以十六进制字符串形式表示。
  * @return NB_Status 返回数据包发送的状态，表示发送成功或失败。
- * 
+ *
  */
 NB_Status NB_SendUDPData(const char *data)
 {
     char cmd[128];
     int len = strlen(data) / 2;
-    snprintf(cmd, sizeof(cmd), "AT+NSOST=%d,\"%s\",%s,%d,%s,100", socket_id, SERVER_IP, SERVER_PORT, len, data);
+    snprintf(cmd, sizeof(cmd), "AT+NSOST=%d,%s,%s,%d,%s,100", socket_id, SERVER_IP, SERVER_PORT, len, data);
     return NB_SendAT(cmd, "OK", 2000);
 }
 
@@ -100,7 +98,7 @@ NB_Status NB_SendUDPData(const char *data)
  * @param Addr 设备地址，用于标识数据包的目标或源设备。
  * @param channel 通信通道，用于指定数据包传输的频段或路径。
  * @param resistance 待发送的电阻值，根据其大小有不同的编码方式。
- * 
+ *
  * @return NB_Status 返回数据包发送的状态，表示发送成功或失败。
  *
  */
@@ -118,8 +116,7 @@ NB_Status NB_SendResistanceData(uint8_t Addr, uint8_t channel, float Resistance)
     } else {
         Res_temp = 50000;
     }
-    alarm = 0;
-    char data[64];
+    alarm        = 0;
     Lora_Data[0] = Addr;    // 地址
     Lora_Data[1] = channel; // 信道
     Lora_Data[2] = 3;
@@ -128,10 +125,11 @@ NB_Status NB_SendResistanceData(uint8_t Addr, uint8_t channel, float Resistance)
     Lora_Data[5] = Res_temp % 256;                                                        // 电阻值低使
     sprintf((char *)Lora_Data, "%c%c%c%c%c", Addr, 3, 2, Res_temp / 256, Res_temp % 256); // channel ,alarm
     calCRC       = GetCRC16(Lora_Data, 5);
-    Lora_Data[5] = (calCRC >> 8) & 0xFF; // CRC高位
-    Lora_Data[6] = (calCRC) & 0xFF;      // CRC低位
-    sprintf(data, "%c%c%c%c%c%c%c", Lora_Data[0], Lora_Data[1], Lora_Data[2], Lora_Data[3], Lora_Data[4],
-            (calCRC) & 0xFF,
-            (calCRC >> 8) & 0xFF); //
+    Lora_Data[5] = (calCRC) & 0xFF;      // CRC低位
+    Lora_Data[6] = (calCRC >> 8) & 0xFF; // CRC高位
+    char data[7];
+    char *ptr = data; // 指向 data缓冲区的当前位置
+    for (int i = 0; i < 7; i++) { ptr += sprintf(ptr, "%02X", Lora_Data[i]); }
+    HAL_Delay(100);
     return NB_SendUDPData(data);
 }
