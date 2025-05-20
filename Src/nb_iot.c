@@ -70,7 +70,7 @@ void NB_Init(void)
     NB_SendAT("AT+CPIN?", "READY", 2000);  // SIM卡状态
     NB_SendAT("AT+CSQ", "OK", 1000);       // 信号质量
     NB_SendAT("AT+CGATT=1", "OK", 3000);   // 附着网络
-    if (NB_SendAT("AT+NSOCR=DGRAM,17,0,1", "OK", 1000) == NB_OK) { socket_id = 1; }
+    if (NB_SendAT("AT+NSOCR=DGRAM,17,0,1", "OK", 1000) == NB_OK) { socket_id = 0; }
 }
 
 /**
@@ -84,10 +84,30 @@ void NB_Init(void)
  */
 NB_Status NB_SendUDPData(const char *data)
 {
-    char cmd[128];
+    char cmd[512];
     int len = strlen(data) / 2;
     snprintf(cmd, sizeof(cmd), "AT+NSOST=%d,%s,%s,%d,%s,100", socket_id, SERVER_IP, SERVER_PORT, len, data);
-    return NB_SendAT(cmd, "OK", 2000);
+    free(data); // 释放动态分配的内存
+    return NB_SendAT(cmd, "OK", 3000);
+}
+
+char *char_to_hex(char c)
+{
+    char *hex = (char *)malloc(3 * sizeof(char));
+    sprintf(hex, "%02x", c);
+    return hex;
+}
+
+char *array_to_hex(const char *array, int size)
+{
+    char *hex = (char *)malloc((2 * size + 1) * sizeof(char));
+    hex[0]    = '\0';
+    for (int i = 0; i < size; i++) {
+        char *temp = char_to_hex(array[i]);
+        strcat(hex, temp);
+        free(temp);
+    }
+    return hex;
 }
 
 /**
@@ -104,8 +124,6 @@ NB_Status NB_SendUDPData(const char *data)
  */
 NB_Status NB_SendResistanceData(uint8_t Addr, uint8_t channel, float Resistance)
 {
-    uint8_t Lora_Data[8], alarm;
-    uint16_t calCRC;
     uint16_t Res_temp;
     if (Resistance < 10) {
         Res_temp = 10000 + Resistance * 1000;
@@ -116,20 +134,22 @@ NB_Status NB_SendResistanceData(uint8_t Addr, uint8_t channel, float Resistance)
     } else {
         Res_temp = 50000;
     }
-    alarm        = 0;
-    Lora_Data[0] = Addr;    // 地址
-    Lora_Data[1] = channel; // 信道
-    Lora_Data[2] = 3;
-    Lora_Data[3] = alarm;                                                                 // 报警
-    Lora_Data[4] = Res_temp / 256;                                                        // 电阻值高使
-    Lora_Data[5] = Res_temp % 256;                                                        // 电阻值低使
-    sprintf((char *)Lora_Data, "%c%c%c%c%c", Addr, 3, 2, Res_temp / 256, Res_temp % 256); // channel ,alarm
-    calCRC       = GetCRC16(Lora_Data, 5);
-    Lora_Data[5] = (calCRC) & 0xFF;      // CRC低位
-    Lora_Data[6] = (calCRC >> 8) & 0xFF; // CRC高位
-    char data[7];
-    char *ptr = data; // 指向 data缓冲区的当前位置
-    for (int i = 0; i < 7; i++) { ptr += sprintf(ptr, "%02X", Lora_Data[i]); }
-    HAL_Delay(100);
+    char NB_Data[512];
+    if (Resistance < 10) {
+        sprintf(NB_Data, "{\"sid\":\"\",\"cid\":\"\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.3f}]\n}", Addr,
+                Resistance);
+    } else if ((Resistance >= 10) && (Resistance < 100)) {
+        sprintf(NB_Data, "{\"sid\":\"\",\"cid\":\"\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.2f}]\n}", Addr,
+                Resistance);
+    } else if ((Resistance >= 100) && (Resistance < 110)) {
+        sprintf(NB_Data, "{\"sid\":\"\",\"cid\":\"\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.1f}]\n}", Addr,
+                Resistance);
+    } else {
+        Resistance = 200.0;
+        sprintf(NB_Data, "{\"sid\":\"\",\"cid\":\"\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.1f}]\n}", Addr,
+                Resistance);
+    }
+    char *data = array_to_hex(NB_Data, strlen(NB_Data));
+    HAL_Delay(200);
     return NB_SendUDPData(data);
 }
