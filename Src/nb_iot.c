@@ -26,11 +26,13 @@ static NB_Status NB_WaitResponse(const char *expected, uint32_t timeout)
         if (HAL_UART_Receive(&huart1, &ch, 1, 10) == HAL_OK) {
             nb_rx_buffer[len++] = ch;
             nb_rx_buffer[len]   = '\0';
-
-            if (strstr(nb_rx_buffer, expected)) { return NB_OK; }
+            if (strstr(nb_rx_buffer, expected)) {
+                printf("\r\n[DEBUG] Expected string found. Buffer: %s\r\n", nb_rx_buffer);
+                return NB_OK;
+            }
         }
     }
-
+    printf("\r\n[DEBUG] Timeout. Buffer content: %s\r\n", nb_rx_buffer);
     return NB_TIMEOUT;
 }
 
@@ -84,9 +86,10 @@ void NB_Init(void)
  */
 NB_Status NB_SendUDPData(const char *data)
 {
-    char cmd[512];
+    char cmd[256];
     int len = strlen(data) / 2;
     snprintf(cmd, sizeof(cmd), "AT+NSOST=%d,%s,%s,%d,%s,100", socket_id, SERVER_IP, SERVER_PORT, len, data);
+    printf("Data length: %d\r\n, cmd length: %d\r\n", len, strlen(cmd));
     free(data); // 释放动态分配的内存
     return NB_SendAT(cmd, "OK", 3000);
 }
@@ -116,13 +119,13 @@ char *array_to_hex(const char *array, int size)
  * 该函数根据给定的电阻值和地址、通道信息，构造一个数据包并通过NB-IoT模块发送出去。
  *
  * @param Addr 设备地址，用于标识数据包的目标或源设备。
- * @param channel 通信通道，用于指定数据包传输的频段或路径。
+ * @param station 通信通道，用于指定数据包传输的频段或路径。
  * @param resistance 待发送的电阻值，根据其大小有不同的编码方式。
  *
  * @return NB_Status 返回数据包发送的状态，表示发送成功或失败。
  *
  */
-NB_Status NB_SendResistanceData(uint8_t Addr, uint8_t channel, float Resistance)
+NB_Status NB_SendResistanceData(uint8_t Addr, uint8_t station, uint8_t control_unit_id, float Resistance)
 {
     uint16_t Res_temp;
     if (Resistance < 10) {
@@ -134,22 +137,22 @@ NB_Status NB_SendResistanceData(uint8_t Addr, uint8_t channel, float Resistance)
     } else {
         Res_temp = 50000;
     }
-    char NB_Data[512];
+    char NB_Data[256];
     if (Resistance < 10) {
-        sprintf(NB_Data, "{\"sid\":\"\",\"cid\":\"\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.3f}]\n}", Addr,
-                Resistance);
+        sprintf(NB_Data, "{\"sid\":\"%03d\",\"cid\":\"%08d\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.3f}]\n}",
+                station, control_unit_id, Addr, Resistance);
     } else if ((Resistance >= 10) && (Resistance < 100)) {
-        sprintf(NB_Data, "{\"sid\":\"\",\"cid\":\"\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.2f}]\n}", Addr,
-                Resistance);
+        sprintf(NB_Data, "{\"sid\":\"%03d\",\"cid\":\"%08d\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.2f}]\n}",
+                station, control_unit_id, Addr, Resistance);
     } else if ((Resistance >= 100) && (Resistance < 110)) {
-        sprintf(NB_Data, "{\"sid\":\"\",\"cid\":\"\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.1f}]\n}", Addr,
-                Resistance);
+        sprintf(NB_Data, "{\"sid\":\"%03d\",\"cid\":\"%08d\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.1f}]\n}",
+                station, control_unit_id, Addr, Resistance);
     } else {
         Resistance = 200.0;
-        sprintf(NB_Data, "{\"sid\":\"\",\"cid\":\"\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.1f}]\n}", Addr,
-                Resistance);
+        sprintf(NB_Data, "{\"sid\":\"%03d\",\"cid\":\"%08d\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.1f}]\n}",
+                station, control_unit_id, Addr, Resistance);
     }
     char *data = array_to_hex(NB_Data, strlen(NB_Data));
-    HAL_Delay(200);
+    HAL_Delay(500);
     return NB_SendUDPData(data);
 }

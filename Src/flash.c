@@ -112,7 +112,7 @@ void Flash_Erase(void)
     HAL_FLASH_Lock();
 }
 
-void remote_data(uint64_t data_0, uint64_t data_1, uint64_t data_2, uint64_t data_3) // 偏移地址+数据
+void remote_data(uint64_t data_0, uint64_t data_1, uint64_t data_2, uint64_t data_3, uint64_t data_4) // 偏移地址+数据
 {
     uint32_t WriteAddr = 0x0803F800; // 主地址
     HAL_StatusTypeDef status;
@@ -122,6 +122,7 @@ void remote_data(uint64_t data_0, uint64_t data_1, uint64_t data_2, uint64_t dat
     status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, WriteAddr + 8, (uint64_t)data_1);  // 存储
     status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, WriteAddr + 16, (uint64_t)data_2); // 存储
     status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, WriteAddr + 24, (uint64_t)data_3); // 存储
+    status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, WriteAddr + 32, (uint64_t)data_4); // 存储
     if (status != HAL_OK) {}
     HAL_FLASH_Lock(); // 上锁
 }

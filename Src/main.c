@@ -259,7 +259,7 @@ int main(void)
                 {
                     lora_flag = 0;
                     HAL_Delay(5000);
-                    NB_SendResistanceData(Addr, channel, old_Resistance);
+                    NB_SendResistanceData(Addr, station, control_unit, old_Resistance);
                     // Lora_Data_UPload(Addr, channel, old_Resistance, 1); // 发送电阻0：发送16进制数据;1：发送文本数据
                 }
             } else if (num_i >= 60) //

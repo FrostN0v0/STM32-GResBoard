@@ -50,11 +50,12 @@ void LCD_init(void) // LCD初始化
 
     write_com(0x3d); // display on
 
-    remote_read();              // 读取flash
-    Addr       = remote_buf[0]; // 获取地址
-    channel    = remote_buf[1]; // 获取信道
-    thshold    = remote_buf[2]; // 获取阈值
-    Sleep_Time = remote_buf[3]; // 获取休眠时间
+    remote_read();                // 读取flash
+    Addr         = remote_buf[0]; // 获取地址
+    station      = remote_buf[1]; // 获取信道
+    thshold      = remote_buf[2]; // 获取阈值
+    Sleep_Time   = remote_buf[3]; // 获取休眠时间
+    control_unit = remote_buf[4]; // 获取控制单元ID
 }
 void LCD_Clear() // 清屏
 {
@@ -208,9 +209,10 @@ void write_data(int dat)
     CS_1();
 }
 
-uint8_t line = 1, page = 0, flag_page = 0;                                 // 图标显示行，页面，页面标志位
-uint8_t Addr = 0, thshold = 0, channel = 0, Sleep_Time = 0, flag_send = 0; // 地址，阈值，信道，休眠时间,发送标志位
-uint8_t addr_num, thshold_num, channel_num, sleep_num;                     // 地址，阈值
+uint8_t line = 1, page = 0, flag_page = 0; // 图标显示行，页面，页面标志位
+uint8_t Addr = 0, thshold = 0, station = 0, Sleep_Time = 0, control_unit = 0,
+        flag_send = 0; // 地址，阈值，站点，休眠时间, 控制单元 ,发送标志位
+uint8_t addr_num, thshold_num, channel_num, sleep_num, control_unit_num; // 地址，阈值
 
 float Resistance;
 void Remote_Set(uint8_t temp)
@@ -221,18 +223,22 @@ void Remote_Set(uint8_t temp)
     switch (temp) {
         case 10: // 按下设置键，进入设置页面
         {
-            page      = 1;
-            flag_page = 1;
-
+            if (page < 2) {
+                page++;
+                flag_page = page;
+            } else {
+                page      = 1;
+                flag_page = 1;
+            }
             line = 1;
             LCD_Clear();
             break;
         }
         case 12: // 按下确定键，返回首页
         {
-            if (page == 1 && flag_page == 1) {
-                Channel_Data[3] = (char)channel;
-
+            if (page != 0 && flag_page != 0) {
+                // TODO: to be removed
+                Channel_Data[3] = (char)station;
                 for (uint8_t i = 0; i < 5; i++) {
                     // Lora_Control(2); // 进入配置模式
                     HAL_Delay(1000);
@@ -249,13 +255,14 @@ void Remote_Set(uint8_t temp)
 
                 // Lora_Control(1); // 返回数据传输模式
                 //				  HAL_Delay(1000);
-                data_1[0] = Addr;       // 地址
-                data_1[1] = channel;    // 信道
-                data_1[2] = thshold;    // 电阻阈值
-                data_1[3] = Sleep_Time; // 休眠时间
-                Flash_Erase();          // 擦除+解锁
-                remote_data((uint64_t)data_1[0], (uint64_t)data_1[1], (uint64_t)data_1[2],
-                            (uint64_t)data_1[3]); // 写入数据
+                data_1[0] = Addr;         // 地址
+                data_1[1] = station;      // 站点
+                data_1[2] = thshold;      // 电阻阈值
+                data_1[3] = Sleep_Time;   // 休眠时间
+                data_1[4] = control_unit; // 控制单元ID
+                Flash_Erase();            // 擦除+解锁
+                remote_data((uint64_t)data_1[0], (uint64_t)data_1[1], (uint64_t)data_1[2], (uint64_t)data_1[3],
+                            (uint64_t)data_1[4]); // 写入数据
             }
             break;
         }
@@ -266,70 +273,105 @@ void Remote_Set(uint8_t temp)
         }
         case 14: // 向下移动
         {
-            if (line <= 3 & page == 1) line++;
+            if (line <= 4 & page == 1) line++;
             break;
         }
     }
 
     if (line == 1) {
-        if (temp <= 9) // 输入数字键
-        {
-            addr_num++;
-            switch (addr_num) {
-                case 1:
-                    Addr = temp;
-                    break; // 第一次输入
-                case 2:
-                    Addr = temp + Addr * 10;
-                    break; // 第二次输入
-            }
-            if (addr_num <= 1)
-                addr_num = 1; // 限幅位数
-            else if (addr_num >= 2)
-                addr_num = 2;
+        if (page == 1) {
+            if (temp <= 9) // 输入数字键
+            {
+                addr_num++;
+                switch (addr_num) {
+                    case 1:
+                        Addr = temp;
+                        break; // 第一次输入
+                    case 2:
+                        Addr = temp + Addr * 10;
+                        break; // 第二次输入
+                }
+                if (addr_num <= 1)
+                    addr_num = 1; // 限幅位数
+                else if (addr_num >= 2)
+                    addr_num = 2;
 
-            if (Addr > 99) {
-                Addr     = 99;
-                addr_num = 2;
-            } else if (Addr <= 0) {
-                addr_num = 0;
-                Addr     = 0;
+                if (Addr > 99) {
+                    Addr     = 99;
+                    addr_num = 2;
+                } else if (Addr <= 0) {
+                    addr_num = 0;
+                    Addr     = 0;
+                }
+            } else if (temp == 11) // 删除键del
+            {
+                addr_num--;
+                Addr = Addr / 10;
+                if (Addr == 0) addr_num = 0;
             }
-        } else if (temp == 11) // 删除键del
-        {
-            addr_num--;
-            Addr = Addr / 10;
-            if (Addr == 0) addr_num = 0;
+        } else if (page == 2) {
+            if (temp <= 9) // 输入数字键
+            {
+                control_unit_num++;
+                switch (control_unit_num) {
+                    case 1:
+                        control_unit = temp;
+                        break; // 第一次输入
+                    case 2:
+                        control_unit = temp + control_unit * 10;
+                        break; // 第二次输入
+                }
+                if (control_unit_num <= 1)
+                    control_unit_num = 1; // 限幅位数
+                else if (control_unit_num >= 2)
+                    control_unit_num = 2;
+                if (control_unit > 99) {
+                    control_unit     = 99;
+                    control_unit_num = 2;
+                } else if (control_unit <= 0) {
+                    control_unit_num = 0;
+                    control_unit     = 0;
+                }
+            } else if (temp == 11) // 删除键del
+            {
+                control_unit_num--;
+                control_unit = control_unit / 10;
+            }
         }
     } else if (line == 2) {
-        if (temp <= 9) // 输入数字键
-        {
+        if (temp <= 9) {
+
+            if (channel_num == 3) { channel_num = 0; }
+
             channel_num++;
             switch (channel_num) {
                 case 1:
-                    channel = temp;
-                    break; // 第一次输入
+                    station = temp;
+                    break;
                 case 2:
-                    channel = temp + channel * 10;
-                    break; // 第二次输入
-            }
-            if (channel_num <= 1)
-                channel_num = 1; // 限幅位数
-            else if (channel_num >= 2)
-                channel_num = 2;
+                    station = temp + station * 10;
+                    break;
+                case 3:
 
-            if (channel > 255) {
-                channel     = 83;
-                channel_num = 2;
-            } else if (channel <= 0) {
-                channel_num = 0;
-                channel     = 0;
+                    station = temp + station * 10;
+                    break;
             }
-        } else if (temp == 11) // 删除键del
-        {
-            channel_num--;
-            channel = channel / 10;
-            if (channel == 0) channel_num = 0;
+
+            if (station > 999) {
+                station     = 0; // 如果超过999，则截断为101
+                channel_num = 1; // 999 是一个3位数
+            }
+
+        } else if (temp == 11) {
+            station = station / 10;
+
+            if (station == 0) {
+                channel_num = 0;
+            } else if (station < 10) {
+                channel_num = 1;
+            } else if (station < 100) {
+                channel_num = 2;
+            }
         }
     } else if (line == 3) // 电阻阈值
     {
@@ -410,8 +452,8 @@ void Remote_Set(uint8_t temp)
     //     LCD_CH16X16(2,3,4); //信
     //	   LCD_CH16X16(2,4,5); //道
     //		 LCD_EN8X16(2,10,11);
-    //		 LCD_EN8X16(2,12,channel/10);
-    //		 LCD_EN8X16(2,13,channel%10);
+    //		 LCD_EN8X16(2,12,station/10);
+    //		 LCD_EN8X16(2,13,station%10);
     //
     //		 LCD_CH16X16(3,1,0);//电
     //	   LCD_CH16X16(3,2,1);//阻
@@ -480,11 +522,12 @@ void Resistance_Display(float Resistance, uint8_t page) // 电阻显示
 
         LCD_CH16X16(2, 1, 11); // 通
         LCD_CH16X16(2, 2, 12); // 讯
-        LCD_CH16X16(2, 3, 4);  // 信
-        LCD_CH16X16(2, 4, 5);  // 道
+        LCD_CH16X16(2, 3, 4);  // 站
+        LCD_CH16X16(2, 4, 5);  // 点
         LCD_EN8X16(2, 10, 11);
-        LCD_EN8X16(2, 12, channel / 10);
-        LCD_EN8X16(2, 13, channel % 10);
+        LCD_EN8X16(2, 12, station / 100);
+        LCD_EN8X16(2, 13, (station % 100) / 10);
+        LCD_EN8X16(2, 14, station % 10);
 
         LCD_CH16X16(3, 1, 0);  // 电
         LCD_CH16X16(3, 2, 1);  // 阻
@@ -502,18 +545,30 @@ void Resistance_Display(float Resistance, uint8_t page) // 电阻显示
         LCD_EN8X16(4, 12, Sleep_Time / 10);
         LCD_EN8X16(4, 13, Sleep_Time % 10);
         LCD_EN8X16(4, 15, 17);
+    } else if (page == 2) {
+        LCD_CH16X16(line, 0, 10); // 指示标志
+
+        LCD_CH16X16(1, 1, 11); // 通
+        LCD_CH16X16(1, 2, 12); // 讯
+        LCD_CH16X16(1, 3, 19); // 主
+        LCD_CH16X16(1, 4, 20); // 控
+        LCD_EN8X16(1, 10, 11); //:
+        LCD_EN8X16(1, 12, control_unit / 10);
+        LCD_EN8X16(1, 13, control_unit % 10);
     } else if (page == 0) {
-        remote_read();              // 读取flash
-        Addr       = remote_buf[0]; // 获取地址
-        channel    = remote_buf[1]; // 获取信道
-        thshold    = remote_buf[2]; // 获取阈值
-        Sleep_Time = remote_buf[3]; // 获取休眠时间
-        if (Addr > 255 && channel > 84 && thshold > 99 && Sleep_Time > 24) {
-            Addr       = 1;
-            channel    = 23;
-            thshold    = 10;
-            Sleep_Time = 1;
-            remote_data(Addr, channel, thshold, Sleep_Time); // FLASH中写入数据
+        remote_read();                // 读取flash
+        Addr         = remote_buf[0]; // 获取地址
+        station      = remote_buf[1]; // 获取信道
+        thshold      = remote_buf[2]; // 获取阈值
+        Sleep_Time   = remote_buf[3]; // 获取休眠时间
+        control_unit = remote_buf[4]; // 获取控制单元ID
+        if (Addr > 255 && station > 84 && thshold > 99 && Sleep_Time > 24 && control_unit > 99) {
+            Addr         = 1;
+            station      = 23;
+            thshold      = 10;
+            Sleep_Time   = 1;
+            control_unit = 1;
+            remote_data(Addr, station, thshold, Sleep_Time, control_unit); // FLASH中写入数据
         }
         LCD_CH16X16(4, 0, 2); // 地
         LCD_CH16X16(4, 1, 3); // 址
@@ -525,8 +580,9 @@ void Resistance_Display(float Resistance, uint8_t page) // 电阻显示
         LCD_CH16X16(4, 4, 4);            // 信
         LCD_CH16X16(4, 5, 5);            // 道
         LCD_EN8X16(4, 12, 11);           //:
-        LCD_EN8X16(4, 13, channel / 10); //
-        LCD_EN8X16(4, 14, channel % 10); //
+        LCD_EN8X16(4, 13, station / 100); //
+        LCD_EN8X16(4, 14, (station % 100) / 10); //
+        LCD_EN8X16(4, 15, station % 10); //
 
         LCD_CH16X16(1, 0, 0);  // 电
         LCD_CH16X16(1, 1, 1);  // 阻
