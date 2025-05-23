@@ -3,8 +3,6 @@
 #include <string.h>
 
 #define NB_RX_BUFFER_SIZE 256
-#define SERVER_IP         "122.152.221.247" // UDP服务器IP
-#define SERVER_PORT       "18888"           // UDP服务器端口
 
 static char nb_rx_buffer[NB_RX_BUFFER_SIZE];
 static int socket_id = 0;
@@ -14,6 +12,14 @@ static void NB_ClearBuffer(void)
     memset(nb_rx_buffer, 0, NB_RX_BUFFER_SIZE);
 }
 
+/*
+ * @brief  等待NB-IoT模块的响应
+ * @param  expected: 响应内容
+ * @param  timeout: 超时时间
+ * @return NB_Status: 返回操作的状态
+ *
+ * 该函数用于等待NB-IoT模块的响应，直到接收到预期的响应内容或超时。(暂未用到)
+ */
 static NB_Status NB_WaitResponse(const char *expected, uint32_t timeout)
 {
     uint32_t tickstart = HAL_GetTick();
@@ -26,13 +32,9 @@ static NB_Status NB_WaitResponse(const char *expected, uint32_t timeout)
         if (HAL_UART_Receive(&huart1, &ch, 1, 10) == HAL_OK) {
             nb_rx_buffer[len++] = ch;
             nb_rx_buffer[len]   = '\0';
-            if (strstr(nb_rx_buffer, expected)) {
-                printf("\r\n[DEBUG] Expected string found. Buffer: %s\r\n", nb_rx_buffer);
-                return NB_OK;
-            }
+            if (strstr(nb_rx_buffer, expected)) { return NB_OK; }
         }
     }
-    printf("\r\n[DEBUG] Timeout. Buffer content: %s\r\n", nb_rx_buffer);
     return NB_TIMEOUT;
 }
 
@@ -86,13 +88,12 @@ extern uint16_t port;
  * @return NB_Status 返回数据包发送的状态，表示发送成功或失败。
  *
  */
-NB_Status NB_SendUDPData(const char *data)
+NB_Status NB_SendUDPData(char *data)
 {
     char cmd[256];
     int len = strlen(data) / 2;
     snprintf(cmd, sizeof(cmd), "AT+NSOST=%d,%d.%d.%d.%d,%d,%d,%s,100", socket_id, ipv4_1, ipv4_2, ipv4_3, ipv4_4, port,
              len, data);
-    printf("Data length: %d\r\n, cmd length: %d\r\n", len, strlen(cmd));
     free(data); // 释放动态分配的内存
     return NB_SendAT(cmd, "OK", 3000);
 }
