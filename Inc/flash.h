@@ -10,7 +10,7 @@
 
 extern uint64_t remote_buf[LEN];
 void Flash_Test(void);
-void remote_data(uint64_t data_0,uint64_t data_1,uint64_t data_2,uint64_t data_3);//偏移地址+数据
+void remote_data(const uint64_t *data_array, uint32_t num_elements);//偏移地址+数据
 //数据存储 偏移地址+数据
 void remote_read();   //数据读取
 void Flash_Erase(void);

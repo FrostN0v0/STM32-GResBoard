@@ -10,10 +10,9 @@ typedef enum {
     NB_TIMEOUT
 } NB_Status;
 
-// 函数声明
 void NB_Init(void);
-NB_Status NB_SendAT(const char* cmd, const char* expected, uint32_t timeout);
-NB_Status NB_ConnectUDP(const char* ip, const char* port);
-NB_Status NB_SendUDPData(const char* data);
+NB_Status NB_SendAT(const char *cmd, const char *expected, uint32_t timeout);
+NB_Status NB_SendUDPData(char *data);
+NB_Status NB_SendResistanceData(uint8_t Addr, uint8_t station, uint8_t control_unit_id, float resistance);
 
 #endif

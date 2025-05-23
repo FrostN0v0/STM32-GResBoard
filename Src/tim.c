@@ -305,7 +305,7 @@ void HAL_TIM_IC_MspDeInit(TIM_HandleTypeDef *tim_icHandle)
 /* USER CODE BEGIN 1 */
 uint16_t num_i, lora_flag, num_j;
 extern uint8_t flag_recog;
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *tim_baseHandle) // 1s定时�?  1s定时中断
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *tim_baseHandle) // 1s定时�?  1s定时中断
 {
     if (tim_baseHandle->Instance == htim6.Instance) // 检查定时器实例是否为TIM6
     {

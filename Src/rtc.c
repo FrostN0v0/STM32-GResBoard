@@ -25,7 +25,6 @@
 #include "X9318.h"
 #include "stm32l4xx_hal.h"
 #include "remote.h"
-#include <stdio.h>
 
 /* USER CODE END 0 */
 
@@ -274,7 +273,7 @@ void RTC_TimeShow_1(void)
     printf("%02d:%02d:%02d", getTime.Hours, getTime.Minutes, getTime.Seconds);
     printf("\r\n");
 }
-extern uint8_t Addr;
+extern uint16_t Addr;
 uint8_t temp[30] = "***Enter STANDBY Mode***\r\n", i = 0;
 uint8_t rtc_temp[40] = "******RTC SET OK******\r\n";
 void Low_power_Sleep(uint32_t sleep_time) // 低功耗睡眠配置
@@ -296,8 +295,6 @@ void Low_power_Sleep(uint32_t sleep_time) // 低功耗睡眠配置
 
     GPIO_Reset_Init();
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
-    //				HAL_UART_Transmit(&huart1,rtc_temp,sizeof(rtc_temp),2);
-    //				HAL_UART_Transmit(&huart1,temp,sizeof(temp),2);
     HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, sleep_time * 3600 * 3 + Addr * 60,
                                 RTC_WAKEUPCLOCK_CK_SPRE_16BITS); // 3600s*xh+地址*60s，防止接收冲突
                                                                  // sleep_time*3600+Addr*60
@@ -306,13 +303,6 @@ void Low_power_Sleep(uint32_t sleep_time) // 低功耗睡眠配置
 }
 void Low_power_Wakeup()
 {
-    //  __HAL_RCC_GPIOC_CLK_ENABLE();
-    //  __HAL_RCC_GPIOH_CLK_ENABLE();
-    //  __HAL_RCC_GPIOB_CLK_ENABLE();
-    //  __HAL_RCC_GPIOA_CLK_ENABLE();
-    //	HAL_Delay��(100);
-
-    // 	SystemClock_Config();
     uint8_t data_1[10], Channel_Data[4] = {0xC0, 0x05, 0x01};
     //	HAL_Init();
     MX_GPIO_Init();
@@ -328,13 +318,6 @@ void Low_power_Wakeup()
     HAL_TIM_Base_Start_IT(&htim6);                     // 启动定时器TIM6
     X9318_Init();                                      // 数字电位器初始化
     LCD_init();
-    //	Channel_Data[3]=(char)channel;
-    //	for( uint8_t i=0;i<5;i++)
-    //	{
-    //	Lora_Control(2);   //进入配置模式
-    //	HAL_Delay(1000);
-    //	printf("%c%c%c%c",Channel_Data[0],Channel_Data[1],Channel_Data[2],Channel_Data[3]);//配置信道
-    //	}
     LCD_Clear(); // 清屏
 }
 

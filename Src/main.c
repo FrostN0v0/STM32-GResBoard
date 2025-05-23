@@ -24,6 +24,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "nb_iot.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -64,7 +65,7 @@ extern uint16_t num_i;
 extern uint8_t flag_page;
 extern float Resistance, old_Resistance;
 extern uint16_t lora_flag;
-extern uint8_t Sleep_Time;
+extern uint16_t Sleep_Time;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -124,9 +125,7 @@ int main(void)
     RTC_TimeShow_1();                           // rtc时间获取
     LCD_Clear();                                // LCD清屏
     num_i = 0;                                  //
-    //	HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN5);//禁用�?有使用的唤醒�?:PWR_WAKEUP_PIN1 connected to PA.00
-    //  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);//清除�?有相关的唤醒标志
-    //  HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN5);//启用连接到PC5的WakeUp Pin
+    NB_Init();                                  // NB-IOT初始化
 
     /* USER CODE END 2 */
 
@@ -134,16 +133,8 @@ int main(void)
     /* USER CODE BEGIN WHILE */
 
     while (1) {
-        //    /* USER CODE END WHILE */
-
-        //    /* USER CODE BEGIN 3 */
-
-        //	if(flag_recog==1)
-        //		{
         if (IR_Scanf(&temp)) // 调试和显示
         {
-            //			  printf("%X\r\n", temp);//
-            //			  printf("%d\r\n", keyscan( temp));//得到键值
             Remote_Set(keyscan(temp));
             num_i = 5;
         } else {
@@ -158,7 +149,6 @@ int main(void)
                 Low_power_Wakeup();   // 唤醒配置
                 Power_1;              // 放大器电源打开
                 REMOTE_1();           // 红外接收头电源打开
-                // Lora_Control(1);      // Lora进入数据传输模式
             } else if (num_i > 2 & num_i < 30) {
                 Power_1;                                           // 放大器电源打开
                 __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 100); // 设置PWM占空比，发射
@@ -253,22 +243,19 @@ int main(void)
             } else if (num_i >= 30 & num_i < 60) // 30s后，
             {
                 Power_0;
-                // Lora_Control(1);                      // 返回数据传输模式
                 if (num_i % 5 == 0 && lora_flag == 1) //
                 {
                     lora_flag = 0;
                     HAL_Delay(5000);
-                    // Lora_Data_UPload(Addr, channel, old_Resistance, 1); // 发送电阻0：发送16进制数据;1：发送文本数据
+                    NB_SendResistanceData(Addr, station, control_unit, old_Resistance);
                 }
             } else if (num_i >= 60) //
             {
                 Power_1; // 放大器电源打开
                 HAL_Delay(1000);
                 num_i = 0;
-                //     flag_recog=2;
-                Power_0;                     // 放大器电源关闭
-                REMOTE_0();                  // 红外遥控电源关闭
-                // Lora_Control(0);             // Lora进入深度休眠模式
+                Power_0;    // 放大器电源关闭
+                REMOTE_0(); // 红外遥控电源关闭
                 Low_power_Sleep(Sleep_Time); // 低功耗睡眠配置--设置休眠时间**小时
             }
         }

@@ -266,4 +266,9 @@ void Lora_Data_UPload(uint8_t Addr, uint8_t channel, float Resistance, uint8_t m
     }
 }
 
+void Test_Send(void) // 测试发送
+{
+    printf("{\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.1f}]\n}", 1, 1.0);
+}
+
 /* USER CODE END 1 */

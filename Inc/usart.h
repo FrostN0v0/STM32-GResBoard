@@ -43,8 +43,8 @@ void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN Prototypes */
 void Lora_Control(uint8_t mode);
 unsigned int GetCRC16(unsigned char *ptr,  unsigned char len);//crc校验
-void Lora_Data_UPload(uint8_t Addr,uint8_t channel,float Resistance,uint8_t mode);//地址，信�?,电阻数据
-
+void Lora_Data_UPload(uint8_t Addr,uint8_t channel,float Resistance,uint8_t mode);//地址，信�?,电阻数据
+void Test_Send(void);
 
 
 
