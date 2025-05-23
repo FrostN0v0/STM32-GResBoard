@@ -112,18 +112,17 @@ void Flash_Erase(void)
     HAL_FLASH_Lock();
 }
 
-void remote_data(uint64_t data_0, uint64_t data_1, uint64_t data_2, uint64_t data_3, uint64_t data_4) // 偏移地址+数据
+void remote_data(const uint64_t *data_array, uint32_t num_elements) // 偏移地址+数据
 {
     uint32_t WriteAddr = 0x0803F800; // 主地址
     HAL_StatusTypeDef status;
 
-    HAL_FLASH_Unlock();                                                                         //=解锁
-    status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, WriteAddr + 0, (uint64_t)data_0);  // 存储
-    status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, WriteAddr + 8, (uint64_t)data_1);  // 存储
-    status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, WriteAddr + 16, (uint64_t)data_2); // 存储
-    status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, WriteAddr + 24, (uint64_t)data_3); // 存储
-    status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, WriteAddr + 32, (uint64_t)data_4); // 存储
-    if (status != HAL_OK) {}
+    HAL_FLASH_Unlock(); //=解锁
+    for (uint32_t i = 0; i < num_elements; ++i) {
+        uint32_t current_flash_address = WriteAddr + (i * 8);
+        status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, current_flash_address, data_array[i]);
+        if (status != HAL_OK) { break; }
+    }
     HAL_FLASH_Lock(); // 上锁
 }
 extern uint8_t Sleep_Time;
@@ -133,7 +132,7 @@ void remote_read() // 偏移地址+数据
     uint32_t remote_addr = 0x0803F800; // 主地址
     //  uint32_t remote_buf[LEN]; //数据存放数组
     int i;
-    memcpy(remote_buf, (uint32_t *)remote_addr, sizeof(uint32_t) * 10);
+    memcpy(remote_buf, (uint32_t *)remote_addr, sizeof(uint32_t) * 20);
 
     //	printf("read after write:\r\n\t");
     //	for(i = 0;i < 10;i++)

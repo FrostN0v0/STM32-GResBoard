@@ -75,6 +75,8 @@ void NB_Init(void)
     if (NB_SendAT("AT+NSOCR=DGRAM,17,0,1", "OK", 1000) == NB_OK) { socket_id = 0; }
 }
 
+extern uint8_t ipv4_1, ipv4_2, ipv4_3, ipv4_4;
+extern uint16_t port;
 /**
  * @brief 发送UDP数据
  *
@@ -88,7 +90,8 @@ NB_Status NB_SendUDPData(const char *data)
 {
     char cmd[256];
     int len = strlen(data) / 2;
-    snprintf(cmd, sizeof(cmd), "AT+NSOST=%d,%s,%s,%d,%s,100", socket_id, SERVER_IP, SERVER_PORT, len, data);
+    snprintf(cmd, sizeof(cmd), "AT+NSOST=%d,%d.%d.%d.%d,%d,%d,%s,100", socket_id, ipv4_1, ipv4_2, ipv4_3, ipv4_4, port,
+             len, data);
     printf("Data length: %d\r\n, cmd length: %d\r\n", len, strlen(cmd));
     free(data); // 释放动态分配的内存
     return NB_SendAT(cmd, "OK", 3000);
