@@ -131,31 +131,11 @@ char *array_to_hex(const char *array, int size)
  */
 NB_Status NB_SendResistanceData(uint8_t Addr, uint8_t station, uint8_t control_unit_id, float Resistance)
 {
-    uint16_t Res_temp;
-    if (Resistance < 10) {
-        Res_temp = 10000 + Resistance * 1000;
-    } else if ((Resistance >= 10) && (Resistance < 100)) {
-        Res_temp = 20000 + Resistance * 100;
-    } else if ((Resistance >= 100) && (Resistance < 200)) {
-        Res_temp = 30000 + Resistance * 10;
-    } else {
-        Res_temp = 50000;
-    }
+    int prec = (Resistance < 10.0f) ? 3 : (Resistance < 100.0f) ? 2 : 1;
     char NB_Data[256];
-    if (Resistance < 10) {
-        sprintf(NB_Data, "{\"sid\":\"%03d\",\"cid\":\"%08d\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.3f}]\n}",
-                station, control_unit_id, Addr, Resistance);
-    } else if ((Resistance >= 10) && (Resistance < 100)) {
-        sprintf(NB_Data, "{\"sid\":\"%03d\",\"cid\":\"%08d\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.2f}]\n}",
-                station, control_unit_id, Addr, Resistance);
-    } else if ((Resistance >= 100) && (Resistance < 110)) {
-        sprintf(NB_Data, "{\"sid\":\"%03d\",\"cid\":\"%08d\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.1f}]\n}",
-                station, control_unit_id, Addr, Resistance);
-    } else {
-        Resistance = 200.0;
-        sprintf(NB_Data, "{\"sid\":\"%03d\",\"cid\":\"%08d\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%0.1f}]\n}",
-                station, control_unit_id, Addr, Resistance);
-    }
+    snprintf(NB_Data, sizeof NB_Data,
+             "{\"sid\":\"%03d\",\"cid\":\"%08d\",\"ts\":\"\",\"d\":[{\"tag\":\"%03d\",\"value\":%.*f}]\n}", station,
+             control_unit_id, Addr, prec, Resistance);
     char *data = array_to_hex(NB_Data, strlen(NB_Data));
     HAL_Delay(500);
     return NB_SendUDPData(data);
